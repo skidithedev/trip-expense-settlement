@@ -1,9 +1,24 @@
-ExpID,Date,Description,Category,Amount,Currency,Payer,DriveURL
-E0001,2025-08-28,SIM cards,Services,350000,VND,Duc Huy,https://drive.google.com/receipt1
-E0002,2025-08-29,Drinks,Food&Drinks,38,CNY,Duc Huy,https://drive.google.com/receipt2
-E0003,2025-08-29,Zhang Yimou Show,Tickets,760,CNY,Chi Quynh,https://drive.google.com/receipt3
-E0004,2025-08-29,Drinks,Food&Drinks,18,CNY,Duc Huy
-E0005,2025-08-29,Drinks,Food&Drinks,50,CNY,Duc Huy
-E0006,2025-08-29,7 Eleven,Food&Drinks,164.40,CNY,Duc Huy
-E0007,2025-08-30,Heytea,Food&Drinks,69,CNY,Duc Huy
-E0008,2025-08-30,Crab Noodles&Xiao Long Bao (Old Town God Temple),Food&Drinks,156,CNY,Duc Huy
+﻿ExpID,Date,Description,Category,Amount,Currency,Payer,DriveURL,__delete__
+E0001,2025-08-28,SIM cards,Services,700000,VND,Duc Huy,https://drive.google.com/receipt1,false
+E0002,2025-08-29,Drinks,Food&Drinks,38,CNY,Duc Huy,https://drive.google.com/receipt2,false
+E0003,2025-08-29,Zhang Yimou Show,Tickets,760,CNY,Chi Quynh,https://drive.google.com/receipt3,false
+E0004,2025-08-29,Drinks,Food&Drinks,18,CNY,Duc Huy,,false
+E0005,2025-08-29,Drinks,Food&Drinks,50,CNY,Duc Huy,,false
+E0006,2025-08-29,7 Eleven,Food&Drinks,164.4,CNY,Duc Huy,,false
+E0007,2025-08-30,Heytea,Food&Drinks,69,CNY,Duc Huy,,false
+E0008,2025-08-30,Crab Noodles & Xiao Long Bao (Old Town God Temple),Food&Drinks,156,CNY,Duc Huy,,false
+E0009,2025-08-30,Taxi to 441 Zhejiang Rd (M),Travelling,30,CNY,Duc Huy,,false
+E0010,2025-08-30,Taxi to The Bund,Travelling,22,CNY,Duc Huy,,false
+E0011,2025-08-30,Taxi to Baolong Hotel,Travelling,44.3,CNY,Duc Huy,,false
+E0012,2025-08-31,Bus Tickets,Travelling,25,CNY,Duc Huy,,false
+E0013,2025-08-31,Starbucks,Food&Drinks,116,CNY,Duc Huy,,false
+E0014,2025-08-31,Zootopia Ice Cream,Food&Drinks,135,CNY,Duc Huy,,false
+E0015,2025-08-31,"Lunch (Pinocchio, Disneyland)",Food&Drinks,187,CNY,Duc Huy,,false
+E0016,2025-08-31,Slinky Dog,Gifts&Merch,139,CNY,Duc Huy,,false
+E0017,2025-08-31,🐻🍓,Gifts&Merch,268.83,CNY,Duc Huy,,false
+E0018,2025-08-31,Taxi departed from Disneyland,Travelling,150,CNY,Duc Huy,,false
+E0019,2025-08-31,"Dinner (Fried Chicken, after Disneyland)",Food&Drinks,64,CNY,Duc Huy,,false
+E0020,2025-08-31,Lemon Tea,Food&Drinks,94,CNY,Duc Huy,,false
+E0021,2025-08-31,Taxi to Baolong Hotel,Travelling,30.1,CNY,Duc Huy,,false
+E0022,2025-09-01,Pastry (Fangtan La Fonte),Gifts&Merch,98,CNY,Duc Huy,,false
+E0023,2025-09-01,Starbucks,Food&Drinks,196.7,CNY,Duc Huy,,false

@@ -1,6 +1,7 @@
 # app/app_streamlit.py
 import os
 from io import BytesIO
+from typing import Optional
 import streamlit as st
 import pandas as pd
 
@@ -15,6 +16,30 @@ from trip_splitter.logic import (
 from trip_splitter.build_or_update import build_workbook_bytes
 
 st.set_page_config(page_title="Trip Expense Settlement", layout="wide")
+
+# Global CSS to improve printing of long tables
+st.markdown(
+    """
+    <style>
+    @media print {
+      /* Expand Streamlit dataframes/editors to full height for print */
+      div[data-testid="stDataFrame"],
+      div[data-testid="stDataFrame"] div[role="grid"] {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      /* Hide chrome not needed on paper */
+      header, footer, section[data-testid="stSidebar"] {
+        display: none !important;
+      }
+      /* Reduce margins to fit more rows per page */
+      @page { margin: 10mm; }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # -----------------------------
@@ -41,7 +66,7 @@ def editable_table(label: str, df: pd.DataFrame, key: str):
     )
     return edited
 
-def apply_sort_controls(df: pd.DataFrame, key_prefix: str, default_col: str | None = None, exclude_prefix: str = "__") -> pd.DataFrame:
+def apply_sort_controls(df: pd.DataFrame, key_prefix: str, default_col: Optional[str] = None, exclude_prefix: str = "__") -> pd.DataFrame:
     # Exclude helper columns (like __delete__)
     sort_columns = [c for c in df.columns if not str(c).startswith(exclude_prefix)]
     if not sort_columns:
@@ -65,7 +90,7 @@ def apply_sort_controls(df: pd.DataFrame, key_prefix: str, default_col: str | No
                 key=f"{key_prefix}_sort_col_tmp",
             )
         with c2:
-            selected_asc = st.toggle(
+            selected_asc = st.checkbox(
                 "Ascending",
                 value=prefs.get("asc", True),
                 key=f"{key_prefix}_sort_asc_tmp",
@@ -139,8 +164,11 @@ save_clicked = col2.button("Save CSVs")
 
 gen_excel = st.sidebar.button("Generate Excel")
 st.sidebar.caption("Excel includes: Settlement, Balances, Allocations, Expenses, Summary.")
-auto_preview = st.sidebar.toggle("Auto-preview", value=True, help="If off, preview updates only when you click 'Run preview'.")
+auto_preview = st.sidebar.checkbox("Auto-preview", value=True, help="If off, preview updates only when you click 'Run preview'.")
 run_preview_clicked = st.sidebar.button("Run preview")
+
+# Print view toggle to render static, non-scroll tables for printing
+print_view = st.sidebar.toggle("Print view", value=False, help="Use static full-length tables for printing.")
 
 # Session save/load controls
 st.sidebar.markdown("---")
@@ -276,13 +304,17 @@ with tab_e:
             num_rows="dynamic",
             column_config={
                 "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
+                "ExpID": st.column_config.TextColumn("Expense ID"),
+                "Date": st.column_config.DateColumn("Date"),
                 "Category": st.column_config.SelectboxColumn(
                     "Category", options=EXPENSE_CATEGORIES
                 ),
+                "Amount": st.column_config.NumberColumn("Amount"),
                 "Currency": st.column_config.SelectboxColumn(
                     "Currency", options=SUPPORTED_CURRENCIES
                 ),
-                "Date": st.column_config.DateColumn("Date"),
+                "Payer": st.column_config.TextColumn("Payer"),
+                "DriveURL": st.column_config.TextColumn("Receipt URL"),
             },
         )
         apply_expenses = st.form_submit_button("Apply changes")
@@ -311,6 +343,8 @@ with tab_s:
             num_rows="dynamic",
             column_config={
                 "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
+                "ExpID": st.column_config.TextColumn("Expense ID"),
+                "Participant": st.column_config.TextColumn("Participant"),
                 "Included": st.column_config.CheckboxColumn(default=False),
                 "WeightOverride": st.column_config.NumberColumn(required=False),
             },
@@ -342,13 +376,25 @@ with tab_prev:
     st.subheader("Preview Results")
     if expenses_vnd is not None:
         st.markdown("**Expenses (with Amount_Base in VND)**")
-        st.dataframe(expenses_vnd, use_container_width=True)
+        if print_view:
+            st.table(expenses_vnd)
+        else:
+            st.dataframe(expenses_vnd, use_container_width=True)
         st.markdown("**Allocations** (per expense & participant)")
-        st.dataframe(allocations, use_container_width=True)
+        if print_view:
+            st.table(allocations)
+        else:
+            st.dataframe(allocations, use_container_width=True)
         st.markdown("**Balances** (per participant)")
-        st.dataframe(balances, use_container_width=True)
+        if print_view:
+            st.table(balances)
+        else:
+            st.dataframe(balances, use_container_width=True)
         st.markdown("**Settlement** (fewest transactions)")
-        st.dataframe(settlement, use_container_width=True)
+        if print_view:
+            st.table(settlement)
+        else:
+            st.dataframe(settlement, use_container_width=True)
     else:
         if auto_preview:
             st.info("Fix the error above to see previews.")
@@ -363,11 +409,17 @@ with tab_sum:
     if expenses_vnd is not None:
         totals_by_cat = expenses_vnd.groupby("Category")["Amount_Base"].sum().reset_index()
         st.markdown("**Totals by Category (VND)**")
-        st.dataframe(totals_by_cat, use_container_width=True)
+        if print_view:
+            st.table(totals_by_cat)
+        else:
+            st.dataframe(totals_by_cat, use_container_width=True)
 
         totals_by_person = balances[["Participant", "Paid_Base", "Owed_Base", "Net_Base"]]
         st.markdown("**Per Participant (VND)**")
-        st.dataframe(totals_by_person, use_container_width=True)
+        if print_view:
+            st.table(totals_by_person)
+        else:
+            st.dataframe(totals_by_person, use_container_width=True)
 
         st.markdown("**Charts**")
         st.bar_chart(totals_by_person.set_index("Participant")[["Paid_Base", "Owed_Base", "Net_Base"]])
@@ -392,13 +444,17 @@ if save_clicked:
 # -----------------------------
 if gen_excel:
     try:
-        xlsx_bytes = build_workbook_bytes(data_dir=data_dir)
-        st.sidebar.download_button(
-            "Download Trip_Splitter.xlsx",
-            data=xlsx_bytes,
-            file_name="Trip_Splitter.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        st.sidebar.success("Excel ready.")
+        xlsx_bytes = build_workbook_bytes(session_data=st.session_state.dfs)
+        st.session_state._excel_bytes = xlsx_bytes
+        st.sidebar.success("Excel ready for download.")
     except Exception as e:
         st.sidebar.error(f"Build failed: {e}")
+
+# Show download button if Excel is ready
+if "_excel_bytes" in st.session_state:
+    st.sidebar.download_button(
+        "Download Trip_Splitter.xlsx",
+        data=st.session_state._excel_bytes,
+        file_name="Trip_Splitter.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )

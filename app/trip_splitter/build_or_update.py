@@ -30,6 +30,47 @@ from trip_splitter.schemas import TRIP_NAME
 OUTPUT_FILE = "Trip_Splitter.xlsx"
 
 
+def auto_size_worksheet(ws, df, start_row: int = 1):
+    """
+    Auto-size columns and rows for better printing and readability.
+    """
+    # Auto-size columns based on content
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        
+        for cell in column:
+            try:
+                if cell.value:
+                    # Calculate length based on content type
+                    if isinstance(cell.value, (int, float)):
+                        # For numbers, use a reasonable width
+                        length = len(str(cell.value)) + 2
+                    else:
+                        # For text, use actual character count
+                        length = len(str(cell.value))
+                    
+                    # Add extra space for currency symbols and formatting
+                    if cell.number_format and ('"₫"' in str(cell.number_format) or '"¥"' in str(cell.number_format) or '"€"' in str(cell.number_format) or '"$"' in str(cell.number_format)):
+                        length += 3
+                    
+                    max_length = max(max_length, length)
+            except:
+                pass
+        
+        # Set reasonable bounds for column width
+        adjusted_width = min(max(max_length + 2, 10), 50)
+        ws.column_dimensions[column_letter].width = adjusted_width
+    
+    # Set row heights for better readability
+    for row in ws.iter_rows(min_row=start_row, max_row=ws.max_row):
+        ws.row_dimensions[row[0].row].height = 20
+    
+    # Set header row height slightly larger
+    if start_row > 1:
+        ws.row_dimensions[start_row].height = 25
+
+
 def write_df_to_sheet(ws, df, title: str = None, bold_header: bool = True, freeze: bool = True):
     """
     Write a pandas DataFrame to an openpyxl worksheet.
@@ -49,6 +90,9 @@ def write_df_to_sheet(ws, df, title: str = None, bold_header: bool = True, freez
 
     if freeze:
         ws.freeze_panes = ws.cell(row=start_row + 1, column=1)
+    
+    # Auto-size columns and rows for better printing
+    auto_size_worksheet(ws, df, start_row)
 
 
 def format_currency_column(ws, col_idx: int, start_row: int = 4):
@@ -144,6 +188,9 @@ def build_workbook(data_dir="sample_data", out_path=OUTPUT_FILE):
         if r_idx == start_row:
             for cell in ws_summary[r_idx]:
                 cell.font = Font(bold=True)
+    
+    # Auto-size the summary sheet
+    auto_size_worksheet(ws_summary, totals_by_person, start_row=start_row)
 
     # Charts
     pie = PieChart()
@@ -166,8 +213,9 @@ def build_workbook(data_dir="sample_data", out_path=OUTPUT_FILE):
     wb._sheets = [ws_settle, ws_summary, ws_balances, ws_allocs, ws_expenses]
 
     # Apply formatting
-    amt_col = list(settlement.columns).index("Amount_VND") + 1
-    format_currency_column(ws_settle, amt_col)
+    if not settlement.empty and "Amount_VND" in settlement.columns:
+        amt_col = list(settlement.columns).index("Amount_VND") + 1
+        format_currency_column(ws_settle, amt_col)
     for col in ["Paid_Base", "Owed_Base", "Net_Base"]:
         col_idx = list(balances.columns).index(col) + 1
         format_currency_column(ws_balances, col_idx)
@@ -188,12 +236,24 @@ if __name__ == "__main__":
     build_workbook()
 
 
-def build_workbook_bytes(data_dir="sample_data") -> bytes:
+def build_workbook_bytes(data_dir="sample_data", session_data=None) -> bytes:
     """
     Build the workbook and return it as bytes for GUI download.
+    
+    Parameters
+    ----------
+    data_dir : str
+        Fallback directory for CSV files if session_data is None
+    session_data : dict, optional
+        Dictionary with keys: participants, rates, expenses, splits
+        If provided, uses this data instead of loading from disk
     """
-    # Load raw CSVs
-    data = load_all_data(data_dir)
+    if session_data is not None:
+        # Use session data (current edits)
+        data = session_data
+    else:
+        # Load raw CSVs from disk
+        data = load_all_data(data_dir)
 
     # Pipeline
     expenses_vnd = convert_expenses_to_base(data["expenses"], data["rates"])
@@ -238,6 +298,9 @@ def build_workbook_bytes(data_dir="sample_data") -> bytes:
         if r_idx == start_row:
             for cell in ws_summary[r_idx]:
                 cell.font = Font(bold=True)
+    
+    # Auto-size the summary sheet
+    auto_size_worksheet(ws_summary, totals_by_person, start_row=start_row)
 
     # Charts
     pie = PieChart()
@@ -260,8 +323,9 @@ def build_workbook_bytes(data_dir="sample_data") -> bytes:
     wb._sheets = [ws_settle, ws_summary, ws_balances, ws_allocs, ws_expenses]
 
     # Apply formatting
-    amt_col = list(settlement.columns).index("Amount_VND") + 1
-    format_currency_column(ws_settle, amt_col)
+    if not settlement.empty and "Amount_VND" in settlement.columns:
+        amt_col = list(settlement.columns).index("Amount_VND") + 1
+        format_currency_column(ws_settle, amt_col)
     for col in ["Paid_Base", "Owed_Base", "Net_Base"]:
         col_idx = list(balances.columns).index(col) + 1
         format_currency_column(ws_balances, col_idx)

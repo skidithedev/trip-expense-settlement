@@ -1,10 +1,66 @@
-ExpID,Participant,Included,WeightOverride
-E0001,Alice,TRUE,
-E0001,Bob,TRUE,
-E0001,Carol,TRUE,
-E0002,Alice,TRUE,
-E0002,Bob,TRUE,
-E0002,Carol,FALSE,
-E0003,Alice,TRUE,
-E0003,Bob,TRUE,
-E0003,Carol,TRUE,
+﻿ExpID,Participant,Included,WeightOverride,__delete__
+E0001,Chi Quynh,true,,false
+E0001,Duc Huy,true,,false
+E0002,Chi Quynh,true,,false
+E0002,Duc Huy,true,,false
+E0003,Chi Quynh,true,,false
+E0003,Duc Huy,true,,false
+E0004,Duc Huy,true,,false
+E0005,Chi Quynh,true,,false
+E0006,Duc Huy,true,,false
+E0007,Chi Quynh,true,,false
+E0007,Chi Tam,true,,false
+E0007,Chi Vy,true,,false
+E0007,Duc Huy,true,,false
+E0008,Chi Quynh,true,,false
+E0008,Chi Tam,true,,false
+E0008,Chi Vy,true,,false
+E0008,Duc Huy,true,,false
+E0009,Chi Quynh,true,,false
+E0009,Chi Tam,true,,false
+E0009,Chi Vy,true,,false
+E0009,Duc Huy,true,,false
+E0010,Chi Quynh,true,,false
+E0010,Chi Tam,true,,false
+E0010,Chi Vy,true,,false
+E0010,Duc Huy,true,,false
+E0011,Chi Quynh,true,,false
+E0011,Chi Tam,true,,false
+E0011,Chi Vy,true,,false
+E0011,Duc Huy,true,,false
+E0012,Chi Quynh,true,,false
+E0012,Duc Huy,true,,false
+E0013,Chi Quynh,true,,false
+E0013,Chi Tam,true,,false
+E0013,Chi Vy,true,,false
+E0013,Duc Huy,true,,false
+E0014,Chi Quynh,true,,false
+E0014,Chi Tam,true,,false
+E0014,Chi Vy,true,,false
+E0015,Chi Quynh,true,,false
+E0015,Chi Tam,true,,false
+E0015,Chi Vy,true,,false
+E0015,Duc Huy,true,,false
+E0016,Chi Quynh,true,,false
+E0017,Duc Huy,true,,false
+E0018,Chi Quynh,true,,false
+E0018,Chi Tam,true,,false
+E0018,Chi Vy,true,,false
+E0018,Duc Huy,true,,false
+E0019,Chi Quynh,true,,false
+E0019,Chi Tam,true,,false
+E0019,Chi Vy,true,,false
+E0019,Duc Huy,true,,false
+E0020,Chi Quynh,true,,false
+E0020,Chi Tam,true,,false
+E0020,Chi Vy,true,,false
+E0020,Duc Huy,true,,false
+E0021,Chi Quynh,true,,false
+E0021,Chi Tam,true,,false
+E0021,Chi Vy,true,,false
+E0021,Duc Huy,true,,false
+E0022,Chi Vy,true,,false
+E0023,Chi Quynh,true,,false
+E0023,Chi Tam,true,,false
+E0023,Chi Vy,true,,false
+E0023,Duc Huy,true,,false
