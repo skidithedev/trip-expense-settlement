@@ -98,8 +98,12 @@ with tab_e:
         key="expenses",
         num_rows="dynamic",
         column_config={
-            "Category": st.column_config.SelectboxColumn("Category", options=EXPENSE_CATEGORIES),
-            "Currency": st.column_config.SelectboxColumn("Currency", options=SUPPORTED_CURRENCIES),
+            "Category": st.column_config.SelectboxColumn(
+                "Category", options=EXPENSE_CATEGORIES
+            ),
+            "Currency": st.column_config.SelectboxColumn(
+                "Currency", options=SUPPORTED_CURRENCIES
+            ),
             "Date": st.column_config.DateColumn("Date"),
         },
     )
