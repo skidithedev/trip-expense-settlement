@@ -136,7 +136,7 @@ def editable_table(label: str, df: pd.DataFrame, key: str):
     )
     return edited
 
-def apply_sort_controls(df: pd.DataFrame, key_prefix: str, default_col: Optional[str] = None, exclude_prefix: str = "__") -> pd.DataFrame:
+def apply_sort_controls(df: pd.DataFrame, key_prefix: str, default_col: Optional[str] = None, exclude_prefix: str = "__", show_ui: bool = True) -> pd.DataFrame:
     # Exclude helper columns (like __delete__)
     sort_columns = [c for c in df.columns if not str(c).startswith(exclude_prefix)]
     if not sort_columns:
@@ -146,28 +146,33 @@ def apply_sort_controls(df: pd.DataFrame, key_prefix: str, default_col: Optional
         st.session_state.sort_prefs = {}
     prefs = st.session_state.sort_prefs.get(key_prefix, {})
 
-    with st.expander("Sorting", expanded=False):
-        c1, c2, c3 = st.columns([2, 1, 1])
-        with c1:
-            try:
-                default_idx = sort_columns.index(default_col) if default_col in sort_columns else 0
-            except ValueError:
-                default_idx = 0
-            selected_col = st.selectbox(
-                "Sort by",
-                sort_columns,
-                index=sort_columns.index(prefs.get("col", sort_columns[default_idx])) if prefs.get("col") in sort_columns else default_idx,
-                key=f"{key_prefix}_sort_col_tmp",
-            )
-        with c2:
-            selected_asc = st.checkbox(
-                "Ascending",
-                value=prefs.get("asc", True),
-                key=f"{key_prefix}_sort_asc_tmp",
-            )
-        with c3:
-            apply_clicked = st.button("Apply sort", key=f"{key_prefix}_apply_sort")
-            clear_clicked = st.button("Clear sort", key=f"{key_prefix}_clear_sort")
+    selected_col = None
+    selected_asc = True
+    apply_clicked = False
+    clear_clicked = False
+    if show_ui:
+        with st.expander("Sorting", expanded=False):
+            c1, c2, c3 = st.columns([2, 1, 1])
+            with c1:
+                try:
+                    default_idx = sort_columns.index(default_col) if default_col in sort_columns else 0
+                except ValueError:
+                    default_idx = 0
+                selected_col = st.selectbox(
+                    "Sort by",
+                    sort_columns,
+                    index=sort_columns.index(prefs.get("col", sort_columns[default_idx])) if prefs.get("col") in sort_columns else default_idx,
+                    key=f"{key_prefix}_sort_col_tmp",
+                )
+            with c2:
+                selected_asc = st.checkbox(
+                    "Ascending",
+                    value=prefs.get("asc", True),
+                    key=f"{key_prefix}_sort_asc_tmp",
+                )
+            with c3:
+                apply_clicked = st.button("Apply sort", key=f"{key_prefix}_apply_sort")
+                clear_clicked = st.button("Clear sort", key=f"{key_prefix}_clear_sort")
 
     # Update persisted sort preferences only when buttons clicked
     if clear_clicked:
@@ -329,7 +334,7 @@ tab_p, tab_r, tab_e, tab_s, tab_prev, tab_sum = st.tabs(
 
 with tab_p:
     st.subheader("Participants")
-    participants = apply_sort_controls(participants, key_prefix="participants", default_col=participants.columns[0] if not participants.empty else None)
+    participants = apply_sort_controls(participants, key_prefix="participants", default_col=participants.columns[0] if not participants.empty else None, show_ui=not print_view)
     if print_view:
         st.caption("participants.csv (print view)")
         render_print_table(sanitize_for_print(participants))
@@ -345,7 +350,7 @@ with tab_p:
 with tab_r:
     st.subheader("Rates (to VND)")
     st.caption("Enter manual daily FX rates. VND must be 1.")
-    rates = apply_sort_controls(rates, key_prefix="rates", default_col=rates.columns[0] if not rates.empty else None)
+    rates = apply_sort_controls(rates, key_prefix="rates", default_col=rates.columns[0] if not rates.empty else None, show_ui=not print_view)
     if print_view:
         st.caption("rates.csv (print view)")
         render_print_table(sanitize_for_print(rates))
@@ -369,7 +374,7 @@ with tab_e:
     # Add a helper checkbox column for deletions (not saved to CSV)
     if "__delete__" not in expenses.columns:
         expenses["__delete__"] = False
-    expenses = apply_sort_controls(expenses, key_prefix="expenses", default_col="Date" if "Date" in expenses.columns else None)
+    expenses = apply_sort_controls(expenses, key_prefix="expenses", default_col="Date" if "Date" in expenses.columns else None, show_ui=not print_view)
     if print_view:
         st.caption("expenses.csv (print view)")
         render_print_table(sanitize_for_print(expenses, extra_drop=["__delete__"]))
@@ -412,7 +417,7 @@ with tab_s:
     # Add a helper checkbox column for deletions (not saved to CSV)
     if "__delete__" not in splits.columns:
         splits["__delete__"] = False
-    splits = apply_sort_controls(splits, key_prefix="splits", default_col="ExpenseID" if "ExpenseID" in splits.columns else None)
+    splits = apply_sort_controls(splits, key_prefix="splits", default_col="ExpenseID" if "ExpenseID" in splits.columns else None, show_ui=not print_view)
     if print_view:
         st.caption("splits.csv (print view)")
         render_print_table(sanitize_for_print(splits, extra_drop=["__delete__"]))
