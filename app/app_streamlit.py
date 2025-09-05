@@ -78,6 +78,19 @@ def sanitize_for_print(df: pd.DataFrame, extra_drop: Optional[list] = None) -> p
         return df.drop(columns=list(dict.fromkeys(to_drop)), errors="ignore")
     return df
 
+# Render a static, full-length table for printing (no scroll, no index)
+def render_print_table(df: pd.DataFrame):
+    if df is None:
+        return
+    try:
+        styler = df.style.hide(axis="index")  # pandas >= 1.4
+    except Exception:
+        try:
+            styler = df.style.hide_index()    # older pandas fallback
+        except Exception:
+            styler = df
+    st.table(styler)
+
 def editable_table(label: str, df: pd.DataFrame, key: str):
     st.caption(label)
     st.caption("Tip: Click 'Add row' to add; use the row menu to delete.")
@@ -286,7 +299,7 @@ with tab_p:
     participants = apply_sort_controls(participants, key_prefix="participants", default_col=participants.columns[0] if not participants.empty else None)
     if print_view:
         st.caption("participants.csv (print view)")
-        st.dataframe(sanitize_for_print(participants), use_container_width=True, hide_index=True)
+        render_print_table(sanitize_for_print(participants))
     else:
         with st.form("participants_form"):
             edited_participants = editable_table("participants.csv", participants, key="participants")
@@ -302,7 +315,7 @@ with tab_r:
     rates = apply_sort_controls(rates, key_prefix="rates", default_col=rates.columns[0] if not rates.empty else None)
     if print_view:
         st.caption("rates.csv (print view)")
-        st.dataframe(sanitize_for_print(rates), use_container_width=True, hide_index=True)
+        render_print_table(sanitize_for_print(rates))
     else:
         with st.form("rates_form"):
             edited_rates = editable_table("rates.csv", rates, key="rates")
@@ -326,7 +339,7 @@ with tab_e:
     expenses = apply_sort_controls(expenses, key_prefix="expenses", default_col="Date" if "Date" in expenses.columns else None)
     if print_view:
         st.caption("expenses.csv (print view)")
-        st.dataframe(sanitize_for_print(expenses, extra_drop=["__delete__"]), use_container_width=True, hide_index=True)
+        render_print_table(sanitize_for_print(expenses, extra_drop=["__delete__"]))
     else:
         col_del_e1, col_del_e2 = st.columns([1, 3])
         with col_del_e1:
@@ -369,7 +382,7 @@ with tab_s:
     splits = apply_sort_controls(splits, key_prefix="splits", default_col="ExpenseID" if "ExpenseID" in splits.columns else None)
     if print_view:
         st.caption("splits.csv (print view)")
-        st.dataframe(sanitize_for_print(splits, extra_drop=["__delete__"]), use_container_width=True, hide_index=True)
+        render_print_table(sanitize_for_print(splits, extra_drop=["__delete__"]))
     else:
         col_del_s1, col_del_s2 = st.columns([1, 3])
         with col_del_s1:
@@ -417,22 +430,22 @@ with tab_prev:
     if expenses_vnd is not None:
         st.markdown("**Expenses (with Amount_Base in VND)**")
         if print_view:
-            st.dataframe(sanitize_for_print(expenses_vnd), use_container_width=True, hide_index=True)
+            render_print_table(sanitize_for_print(expenses_vnd))
         else:
             st.dataframe(expenses_vnd, use_container_width=True)
         st.markdown("**Allocations** (per expense & participant)")
         if print_view:
-            st.dataframe(sanitize_for_print(allocations), use_container_width=True, hide_index=True)
+            render_print_table(sanitize_for_print(allocations))
         else:
             st.dataframe(allocations, use_container_width=True)
         st.markdown("**Balances** (per participant)")
         if print_view:
-            st.dataframe(balances, use_container_width=True, hide_index=True)
+            render_print_table(balances)
         else:
             st.dataframe(balances, use_container_width=True)
         st.markdown("**Settlement** (fewest transactions)")
         if print_view:
-            st.dataframe(settlement, use_container_width=True, hide_index=True)
+            render_print_table(settlement)
         else:
             st.dataframe(settlement, use_container_width=True)
     else:
@@ -450,14 +463,14 @@ with tab_sum:
         totals_by_cat = expenses_vnd.groupby("Category")["Amount_Base"].sum().reset_index()
         st.markdown("**Totals by Category (VND)**")
         if print_view:
-            st.dataframe(totals_by_cat, use_container_width=True, hide_index=True)
+            render_print_table(totals_by_cat)
         else:
             st.dataframe(totals_by_cat, use_container_width=True)
 
         totals_by_person = balances[["Participant", "Paid_Base", "Owed_Base", "Net_Base"]]
         st.markdown("**Per Participant (VND)**")
         if print_view:
-            st.dataframe(totals_by_person, use_container_width=True, hide_index=True)
+            render_print_table(totals_by_person)
         else:
             st.dataframe(totals_by_person, use_container_width=True)
 
