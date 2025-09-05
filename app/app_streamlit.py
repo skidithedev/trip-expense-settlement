@@ -58,7 +58,7 @@ def save_df_csv(df: pd.DataFrame, path: str):
 def sanitize_for_print(df: pd.DataFrame, extra_drop: Optional[list] = None) -> pd.DataFrame:
     if df is None:
         return df
-    drop_exact = {"ExpID", "ExpenseID", "ID", "Uuid", "UID"}
+    drop_exact = {"ExpID", "ExpenseID", "ID", "Uuid", "UID", "__delete__"}
     drop_suffix = ("ID", "Id", "_id")
     drop_contains = {"URL", "Url", "Link", "Href"}
     to_drop = []
@@ -284,24 +284,32 @@ tab_p, tab_r, tab_e, tab_s, tab_prev, tab_sum = st.tabs(
 with tab_p:
     st.subheader("Participants")
     participants = apply_sort_controls(participants, key_prefix="participants", default_col=participants.columns[0] if not participants.empty else None)
-    with st.form("participants_form"):
-        edited_participants = editable_table("participants.csv", participants, key="participants")
-        submitted = st.form_submit_button("Apply changes")
-    if submitted:
-        st.session_state.dfs["participants"] = edited_participants
-        participants = edited_participants
-    st.info("Weights default to 1.0; you can adjust here or per-expense via WeightOverride in Splits.")
+    if print_view:
+        st.caption("participants.csv (print view)")
+        st.dataframe(sanitize_for_print(participants), use_container_width=True, hide_index=True)
+    else:
+        with st.form("participants_form"):
+            edited_participants = editable_table("participants.csv", participants, key="participants")
+            submitted = st.form_submit_button("Apply changes")
+        if submitted:
+            st.session_state.dfs["participants"] = edited_participants
+            participants = edited_participants
+        st.info("Weights default to 1.0; you can adjust here or per-expense via WeightOverride in Splits.")
 
 with tab_r:
     st.subheader("Rates (to VND)")
     st.caption("Enter manual daily FX rates. VND must be 1.")
     rates = apply_sort_controls(rates, key_prefix="rates", default_col=rates.columns[0] if not rates.empty else None)
-    with st.form("rates_form"):
-        edited_rates = editable_table("rates.csv", rates, key="rates")
-        submitted = st.form_submit_button("Apply changes")
-    if submitted:
-        st.session_state.dfs["rates"] = edited_rates
-        rates = edited_rates
+    if print_view:
+        st.caption("rates.csv (print view)")
+        st.dataframe(sanitize_for_print(rates), use_container_width=True, hide_index=True)
+    else:
+        with st.form("rates_form"):
+            edited_rates = editable_table("rates.csv", rates, key="rates")
+            submitted = st.form_submit_button("Apply changes")
+        if submitted:
+            st.session_state.dfs["rates"] = edited_rates
+            rates = edited_rates
 
 with tab_e:
     st.subheader("Expenses")
@@ -316,36 +324,40 @@ with tab_e:
     if "__delete__" not in expenses.columns:
         expenses["__delete__"] = False
     expenses = apply_sort_controls(expenses, key_prefix="expenses", default_col="Date" if "Date" in expenses.columns else None)
-    col_del_e1, col_del_e2 = st.columns([1, 3])
-    with col_del_e1:
-        del_expenses_clicked = st.button("Delete selected rows", key="del_expenses")
-    with st.form("expenses_form"):
-        expenses = st.data_editor(
-            expenses,
-            use_container_width=True,
-            hide_index=True,
-            key="expenses",
-            num_rows="dynamic",
-            column_config={
-                "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
-                "ExpID": st.column_config.TextColumn("Expense ID"),
-                "Date": st.column_config.DateColumn("Date"),
-                "Category": st.column_config.SelectboxColumn(
-                    "Category", options=EXPENSE_CATEGORIES
-                ),
-                "Amount": st.column_config.NumberColumn("Amount"),
-                "Currency": st.column_config.SelectboxColumn(
-                    "Currency", options=SUPPORTED_CURRENCIES
-                ),
-                "Payer": st.column_config.TextColumn("Payer"),
-                "DriveURL": st.column_config.TextColumn("Receipt URL"),
-            },
-        )
-        apply_expenses = st.form_submit_button("Apply changes")
-    if del_expenses_clicked and "__delete__" in expenses.columns:
-        expenses = expenses[~expenses["__delete__"].fillna(False)].drop(columns=["__delete__"], errors="ignore").reset_index(drop=True)
-    if apply_expenses:
-        st.session_state.dfs["expenses"] = expenses
+    if print_view:
+        st.caption("expenses.csv (print view)")
+        st.dataframe(sanitize_for_print(expenses, extra_drop=["__delete__"]), use_container_width=True, hide_index=True)
+    else:
+        col_del_e1, col_del_e2 = st.columns([1, 3])
+        with col_del_e1:
+            del_expenses_clicked = st.button("Delete selected rows", key="del_expenses")
+        with st.form("expenses_form"):
+            expenses = st.data_editor(
+                expenses,
+                use_container_width=True,
+                hide_index=True,
+                key="expenses",
+                num_rows="dynamic",
+                column_config={
+                    "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
+                    "ExpID": st.column_config.TextColumn("Expense ID"),
+                    "Date": st.column_config.DateColumn("Date"),
+                    "Category": st.column_config.SelectboxColumn(
+                        "Category", options=EXPENSE_CATEGORIES
+                    ),
+                    "Amount": st.column_config.NumberColumn("Amount"),
+                    "Currency": st.column_config.SelectboxColumn(
+                        "Currency", options=SUPPORTED_CURRENCIES
+                    ),
+                    "Payer": st.column_config.TextColumn("Payer"),
+                    "DriveURL": st.column_config.TextColumn("Receipt URL"),
+                },
+            )
+            apply_expenses = st.form_submit_button("Apply changes")
+        if del_expenses_clicked and "__delete__" in expenses.columns:
+            expenses = expenses[~expenses["__delete__"].fillna(False)].drop(columns=["__delete__"], errors="ignore").reset_index(drop=True)
+        if apply_expenses:
+            st.session_state.dfs["expenses"] = expenses
 
 with tab_s:
     st.subheader("Splits (long format)")
@@ -355,29 +367,33 @@ with tab_s:
     if "__delete__" not in splits.columns:
         splits["__delete__"] = False
     splits = apply_sort_controls(splits, key_prefix="splits", default_col="ExpenseID" if "ExpenseID" in splits.columns else None)
-    col_del_s1, col_del_s2 = st.columns([1, 3])
-    with col_del_s1:
-        del_splits_clicked = st.button("Delete selected rows", key="del_splits")
-    with st.form("splits_form"):
-        splits = st.data_editor(
-            splits,
-            use_container_width=True,
-            hide_index=True,
-            key="splits",
-            num_rows="dynamic",
-            column_config={
-                "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
-                "ExpID": st.column_config.TextColumn("Expense ID"),
-                "Participant": st.column_config.TextColumn("Participant"),
-                "Included": st.column_config.CheckboxColumn(default=False),
-                "WeightOverride": st.column_config.NumberColumn(required=False),
-            },
-        )
-        apply_splits = st.form_submit_button("Apply changes")
-    if del_splits_clicked and "__delete__" in splits.columns:
-        splits = splits[~splits["__delete__"].fillna(False)].drop(columns=["__delete__"], errors="ignore").reset_index(drop=True)
-    if apply_splits:
-        st.session_state.dfs["splits"] = splits
+    if print_view:
+        st.caption("splits.csv (print view)")
+        st.dataframe(sanitize_for_print(splits, extra_drop=["__delete__"]), use_container_width=True, hide_index=True)
+    else:
+        col_del_s1, col_del_s2 = st.columns([1, 3])
+        with col_del_s1:
+            del_splits_clicked = st.button("Delete selected rows", key="del_splits")
+        with st.form("splits_form"):
+            splits = st.data_editor(
+                splits,
+                use_container_width=True,
+                hide_index=True,
+                key="splits",
+                num_rows="dynamic",
+                column_config={
+                    "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
+                    "ExpID": st.column_config.TextColumn("Expense ID"),
+                    "Participant": st.column_config.TextColumn("Participant"),
+                    "Included": st.column_config.CheckboxColumn(default=False),
+                    "WeightOverride": st.column_config.NumberColumn(required=False),
+                },
+            )
+            apply_splits = st.form_submit_button("Apply changes")
+        if del_splits_clicked and "__delete__" in splits.columns:
+            splits = splits[~splits["__delete__"].fillna(False)].drop(columns=["__delete__"], errors="ignore").reset_index(drop=True)
+        if apply_splits:
+            st.session_state.dfs["splits"] = splits
 
 # -----------------------------
 # Pipeline (Preview)
@@ -401,22 +417,22 @@ with tab_prev:
     if expenses_vnd is not None:
         st.markdown("**Expenses (with Amount_Base in VND)**")
         if print_view:
-            st.table(sanitize_for_print(expenses_vnd))
+            st.dataframe(sanitize_for_print(expenses_vnd), use_container_width=True, hide_index=True)
         else:
             st.dataframe(expenses_vnd, use_container_width=True)
         st.markdown("**Allocations** (per expense & participant)")
         if print_view:
-            st.table(sanitize_for_print(allocations))
+            st.dataframe(sanitize_for_print(allocations), use_container_width=True, hide_index=True)
         else:
             st.dataframe(allocations, use_container_width=True)
         st.markdown("**Balances** (per participant)")
         if print_view:
-            st.table(balances)
+            st.dataframe(balances, use_container_width=True, hide_index=True)
         else:
             st.dataframe(balances, use_container_width=True)
         st.markdown("**Settlement** (fewest transactions)")
         if print_view:
-            st.table(settlement)
+            st.dataframe(settlement, use_container_width=True, hide_index=True)
         else:
             st.dataframe(settlement, use_container_width=True)
     else:
@@ -434,14 +450,14 @@ with tab_sum:
         totals_by_cat = expenses_vnd.groupby("Category")["Amount_Base"].sum().reset_index()
         st.markdown("**Totals by Category (VND)**")
         if print_view:
-            st.table(totals_by_cat)
+            st.dataframe(totals_by_cat, use_container_width=True, hide_index=True)
         else:
             st.dataframe(totals_by_cat, use_container_width=True)
 
         totals_by_person = balances[["Participant", "Paid_Base", "Owed_Base", "Net_Base"]]
         st.markdown("**Per Participant (VND)**")
         if print_view:
-            st.table(totals_by_person)
+            st.dataframe(totals_by_person, use_container_width=True, hide_index=True)
         else:
             st.dataframe(totals_by_person, use_container_width=True)
 
