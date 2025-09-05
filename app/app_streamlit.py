@@ -54,6 +54,30 @@ def save_df_csv(df: pd.DataFrame, path: str):
     df = df.fillna("")
     df.to_csv(path, index=False)
 
+# Remove ID and hyperlink-like columns for printing
+def sanitize_for_print(df: pd.DataFrame, extra_drop: Optional[list] = None) -> pd.DataFrame:
+    if df is None:
+        return df
+    drop_exact = {"ExpID", "ExpenseID", "ID", "Uuid", "UID"}
+    drop_suffix = ("ID", "Id", "_id")
+    drop_contains = {"URL", "Url", "Link", "Href"}
+    to_drop = []
+    for c in df.columns:
+        name = str(c)
+        if name in drop_exact:
+            to_drop.append(c)
+        elif any(name.endswith(suf) for suf in drop_suffix):
+            to_drop.append(c)
+        elif any(tok in name for tok in drop_contains):
+            to_drop.append(c)
+    if extra_drop:
+        for c in extra_drop:
+            if c in df.columns:
+                to_drop.append(c)
+    if to_drop:
+        return df.drop(columns=list(dict.fromkeys(to_drop)), errors="ignore")
+    return df
+
 def editable_table(label: str, df: pd.DataFrame, key: str):
     st.caption(label)
     st.caption("Tip: Click 'Add row' to add; use the row menu to delete.")
@@ -377,12 +401,12 @@ with tab_prev:
     if expenses_vnd is not None:
         st.markdown("**Expenses (with Amount_Base in VND)**")
         if print_view:
-            st.table(expenses_vnd)
+            st.table(sanitize_for_print(expenses_vnd))
         else:
             st.dataframe(expenses_vnd, use_container_width=True)
         st.markdown("**Allocations** (per expense & participant)")
         if print_view:
-            st.table(allocations)
+            st.table(sanitize_for_print(allocations))
         else:
             st.dataframe(allocations, use_container_width=True)
         st.markdown("**Balances** (per participant)")
