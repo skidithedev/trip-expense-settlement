@@ -90,6 +90,29 @@ def apply_sort_controls(df: pd.DataFrame, key_prefix: str, default_col: str | No
             return df
     return df
 
+# -----------------------------
+# Session snapshot helpers
+# -----------------------------
+def session_to_json_bytes() -> bytes:
+    import json, time
+    payload = {
+        "dfs": {k: v.to_dict(orient="records") for k, v in st.session_state.dfs.items()},
+        "sort_prefs": st.session_state.get("sort_prefs", {}),
+        "auto_preview": st.session_state.get("auto_preview", True),
+        "data_dir": st.session_state.get("loaded_data_dir", "sample_data"),
+        "ts": time.time(),
+    }
+    return json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+def load_session_from_json_bytes(file_bytes: bytes):
+    import json
+    payload = json.loads(file_bytes.decode("utf-8"))
+    st.session_state.dfs = {k: pd.DataFrame(v) for k, v in payload.get("dfs", {}).items()}
+    st.session_state.sort_prefs = payload.get("sort_prefs", {})
+    st.session_state.auto_preview = payload.get("auto_preview", True)
+    st.session_state.loaded_data_dir = payload.get("data_dir", "sample_data")
+    st.rerun()
+
 
 # -----------------------------
 # Sidebar controls
@@ -106,6 +129,62 @@ gen_excel = st.sidebar.button("Generate Excel")
 st.sidebar.caption("Excel includes: Settlement, Balances, Allocations, Expenses, Summary.")
 auto_preview = st.sidebar.toggle("Auto-preview", value=True, help="If off, preview updates only when you click 'Run preview'.")
 run_preview_clicked = st.sidebar.button("Run preview")
+
+# Session save/load controls
+st.sidebar.markdown("---")
+st.sidebar.subheader("Session")
+col_ss1, col_ss2 = st.sidebar.columns(2)
+with col_ss1:
+    if st.button("Save session JSON"):
+        st.session_state._session_json = session_to_json_bytes()
+with col_ss2:
+    if "_session_json" in st.session_state:
+        st.sidebar.download_button(
+            "Download session.json",
+            data=st.session_state._session_json,
+            file_name="session.json",
+            mime="application/json",
+        )
+    else:
+        st.caption("Click 'Save session JSON' first to enable download.")
+
+uploaded = st.sidebar.file_uploader("Load session JSON", type=["json"], accept_multiple_files=False)
+if uploaded is not None:
+    try:
+        load_session_from_json_bytes(uploaded.read())
+    except Exception as e:
+        st.sidebar.error(f"Failed to load session: {e}")
+
+# Disk save slots
+st.sidebar.markdown("---")
+st.sidebar.subheader("Save slots")
+sessions_dir = ".sessions"
+os.makedirs(sessions_dir, exist_ok=True)
+slot_name = st.sidebar.text_input("Slot name", value="latest")
+col_slot1, col_slot2 = st.sidebar.columns(2)
+with col_slot1:
+    if st.button("Save slot"):
+        try:
+            path = os.path.join(sessions_dir, f"{slot_name}.json")
+            with open(path, "wb") as f:
+                f.write(session_to_json_bytes())
+            st.sidebar.success(f"Saved {path}")
+        except Exception as e:
+            st.sidebar.error(f"Failed to save slot: {e}")
+with col_slot2:
+    # List available slots
+    try:
+        files = sorted([f for f in os.listdir(sessions_dir) if f.endswith('.json')])
+    except Exception:
+        files = []
+    selected_slot = st.selectbox("Load slot", files, index=files.index("latest.json") if "latest.json" in files else (len(files)-1 if files else 0))
+    if st.button("Load slot") and selected_slot:
+        try:
+            path = os.path.join(sessions_dir, selected_slot)
+            with open(path, "rb") as f:
+                load_session_from_json_bytes(f.read())
+        except Exception as e:
+            st.sidebar.error(f"Failed to load slot: {e}")
 
 
 # -----------------------------
@@ -141,16 +220,24 @@ tab_p, tab_r, tab_e, tab_s, tab_prev, tab_sum = st.tabs(
 with tab_p:
     st.subheader("Participants")
     participants = apply_sort_controls(participants, key_prefix="participants", default_col=participants.columns[0] if not participants.empty else None)
-    participants = editable_table("participants.csv", participants, key="participants")
-    st.session_state.dfs["participants"] = participants
+    with st.form("participants_form"):
+        edited_participants = editable_table("participants.csv", participants, key="participants")
+        submitted = st.form_submit_button("Apply changes")
+    if submitted:
+        st.session_state.dfs["participants"] = edited_participants
+        participants = edited_participants
     st.info("Weights default to 1.0; you can adjust here or per-expense via WeightOverride in Splits.")
 
 with tab_r:
     st.subheader("Rates (to VND)")
     st.caption("Enter manual daily FX rates. VND must be 1.")
     rates = apply_sort_controls(rates, key_prefix="rates", default_col=rates.columns[0] if not rates.empty else None)
-    rates = editable_table("rates.csv", rates, key="rates")
-    st.session_state.dfs["rates"] = rates
+    with st.form("rates_form"):
+        edited_rates = editable_table("rates.csv", rates, key="rates")
+        submitted = st.form_submit_button("Apply changes")
+    if submitted:
+        st.session_state.dfs["rates"] = edited_rates
+        rates = edited_rates
 
 with tab_e:
     st.subheader("Expenses")
@@ -168,29 +255,29 @@ with tab_e:
     col_del_e1, col_del_e2 = st.columns([1, 3])
     with col_del_e1:
         del_expenses_clicked = st.button("Delete selected rows", key="del_expenses")
-    expenses = st.data_editor(
-        expenses,
-        use_container_width=True,
-        hide_index=True,
-        key="expenses",
-        num_rows="dynamic",
-        column_config={
-            "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
-            "Category": st.column_config.SelectboxColumn(
-                "Category", options=EXPENSE_CATEGORIES
-            ),
-            "Currency": st.column_config.SelectboxColumn(
-                "Currency", options=SUPPORTED_CURRENCIES
-            ),
-            "Date": st.column_config.DateColumn("Date"),
-        },
-    )
+    with st.form("expenses_form"):
+        expenses = st.data_editor(
+            expenses,
+            use_container_width=True,
+            hide_index=True,
+            key="expenses",
+            num_rows="dynamic",
+            column_config={
+                "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
+                "Category": st.column_config.SelectboxColumn(
+                    "Category", options=EXPENSE_CATEGORIES
+                ),
+                "Currency": st.column_config.SelectboxColumn(
+                    "Currency", options=SUPPORTED_CURRENCIES
+                ),
+                "Date": st.column_config.DateColumn("Date"),
+            },
+        )
+        apply_expenses = st.form_submit_button("Apply changes")
     if del_expenses_clicked and "__delete__" in expenses.columns:
         expenses = expenses[~expenses["__delete__"].fillna(False)].drop(columns=["__delete__"], errors="ignore").reset_index(drop=True)
-    else:
-        # Keep helper column for further edits until save
-        pass
-    st.session_state.dfs["expenses"] = expenses
+    if apply_expenses:
+        st.session_state.dfs["expenses"] = expenses
 
 with tab_s:
     st.subheader("Splits (long format)")
@@ -203,24 +290,24 @@ with tab_s:
     col_del_s1, col_del_s2 = st.columns([1, 3])
     with col_del_s1:
         del_splits_clicked = st.button("Delete selected rows", key="del_splits")
-    splits = st.data_editor(
-        splits,
-        use_container_width=True,
-        hide_index=True,
-        key="splits",
-        num_rows="dynamic",
-        column_config={
-            "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
-            "Included": st.column_config.CheckboxColumn(default=False),
-            "WeightOverride": st.column_config.NumberColumn(required=False),
-        },
-    )
+    with st.form("splits_form"):
+        splits = st.data_editor(
+            splits,
+            use_container_width=True,
+            hide_index=True,
+            key="splits",
+            num_rows="dynamic",
+            column_config={
+                "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
+                "Included": st.column_config.CheckboxColumn(default=False),
+                "WeightOverride": st.column_config.NumberColumn(required=False),
+            },
+        )
+        apply_splits = st.form_submit_button("Apply changes")
     if del_splits_clicked and "__delete__" in splits.columns:
         splits = splits[~splits["__delete__"].fillna(False)].drop(columns=["__delete__"], errors="ignore").reset_index(drop=True)
-    else:
-        # Keep helper column for further edits until save
-        pass
-    st.session_state.dfs["splits"] = splits
+    if apply_splits:
+        st.session_state.dfs["splits"] = splits
 
 # -----------------------------
 # Pipeline (Preview)
