@@ -464,7 +464,9 @@ except Exception as e:
     settlement = balances = allocations = expenses_vnd = None
 
 with tab_prev:
-    st.subheader("Results" if print_view else "Preview Results")
+    st.subheader("Report" if print_view else "Preview Results")
+    if print_view:
+        st.markdown(f"**Trip:** {TRIP_NAME}")
     if expenses_vnd is not None:
         st.markdown("**Expenses (with Amount_Base in VND)**")
         if print_view:
