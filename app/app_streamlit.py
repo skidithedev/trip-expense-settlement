@@ -23,12 +23,15 @@ st.set_page_config(page_title="Trip Expense Settlement", layout="wide")
 def save_df_csv(df: pd.DataFrame, path: str):
     # Drop completely empty rows (all NaN)
     df = df.dropna(how="all")
+    # Drop any temporary helper columns (e.g., delete markers)
+    df = df[[c for c in df.columns if not str(c).startswith("__")]]
     # Replace NaN with empty string for CSV friendliness
     df = df.fillna("")
     df.to_csv(path, index=False)
 
 def editable_table(label: str, df: pd.DataFrame, key: str):
     st.caption(label)
+    st.caption("Tip: Click 'Add row' to add; use the row menu to delete.")
     edited = st.data_editor(
         df,
         use_container_width=True,
@@ -86,11 +89,18 @@ with tab_r:
 with tab_e:
     st.subheader("Expenses")
     st.caption("DriveURL becomes a 🧾 hyperlink in Excel. Categories and currency must be valid.")
+    st.caption("Tip: Click 'Add row' to add; use the row menu to delete.")
     # Show some guidance
     st.markdown(
         f"- Allowed categories: `{', '.join(EXPENSE_CATEGORIES)}`  \n"
         f"- Supported currencies: `{', '.join(SUPPORTED_CURRENCIES)}`"
     )
+    # Add a helper checkbox column for deletions (not saved to CSV)
+    if "__delete__" not in expenses.columns:
+        expenses["__delete__"] = False
+    col_del_e1, col_del_e2 = st.columns([1, 3])
+    with col_del_e1:
+        del_expenses_clicked = st.button("Delete selected rows", key="del_expenses")
     expenses = st.data_editor(
         expenses,
         use_container_width=True,
@@ -98,6 +108,7 @@ with tab_e:
         key="expenses",
         num_rows="dynamic",
         column_config={
+            "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
             "Category": st.column_config.SelectboxColumn(
                 "Category", options=EXPENSE_CATEGORIES
             ),
@@ -107,10 +118,22 @@ with tab_e:
             "Date": st.column_config.DateColumn("Date"),
         },
     )
+    if del_expenses_clicked and "__delete__" in expenses.columns:
+        expenses = expenses[~expenses["__delete__"].fillna(False)].drop(columns=["__delete__"], errors="ignore").reset_index(drop=True)
+    else:
+        # Keep helper column for further edits until save
+        pass
 
 with tab_s:
     st.subheader("Splits (long format)")
     st.caption("Included = TRUE/FALSE. WeightOverride blank → use DefaultWeight from Participants.")
+    st.caption("Tip: Click 'Add row' to add; use the row menu to delete.")
+    # Add a helper checkbox column for deletions (not saved to CSV)
+    if "__delete__" not in splits.columns:
+        splits["__delete__"] = False
+    col_del_s1, col_del_s2 = st.columns([1, 3])
+    with col_del_s1:
+        del_splits_clicked = st.button("Delete selected rows", key="del_splits")
     splits = st.data_editor(
         splits,
         use_container_width=True,
@@ -118,10 +141,16 @@ with tab_s:
         key="splits",
         num_rows="dynamic",
         column_config={
+            "__delete__": st.column_config.CheckboxColumn(label="Delete?", default=False),
             "Included": st.column_config.CheckboxColumn(default=False),
             "WeightOverride": st.column_config.NumberColumn(required=False),
         },
     )
+    if del_splits_clicked and "__delete__" in splits.columns:
+        splits = splits[~splits["__delete__"].fillna(False)].drop(columns=["__delete__"], errors="ignore").reset_index(drop=True)
+    else:
+        # Keep helper column for further edits until save
+        pass
 
 # -----------------------------
 # Pipeline (Preview)
