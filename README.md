@@ -4,19 +4,19 @@ A simple Python-powered tool to manage **shared travel expenses** and generate a
 
 ## ✨ Features
 
-* **Settlement sheet** → optimized *who pays whom* with fewest transactions.
-* **Balances sheet** → what each participant paid, owes, and net balance.
-* **Allocations sheet** → detailed per-expense shares.
-* **Expenses sheet** → original amounts (multi-currency), converted to VND, with **receipt links** (🧾).
-* **Summary sheet** → totals by category, per person, with charts.
+- **Settlement sheet** → optimized _who pays whom_ with fewest transactions.
+- **Balances sheet** → what each participant paid, owes, and net balance.
+- **Allocations sheet** → detailed per-expense shares.
+- **Expenses sheet** → original amounts (multi-currency), converted to VND, with **receipt links** (🧾).
+- **Summary sheet** → totals by category, per person, with charts.
 
 ## ⚙️ Setup
 
 ### Prerequisites
 
-* macOS/Linux
-* Python 3.10+
-* Excel (or LibreOffice)
+- macOS/Linux
+- Python 3.10+
+- Excel (or LibreOffice)
 
 ### Installation
 
@@ -30,14 +30,14 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install pandas openpyxl
+pip install pandas openpyxl streamlit
 ```
 
 ## 📝 Input Data
 
 CSV files are stored in `sample_data/`.
 
-* **participants.csv**
+- **participants.csv**
 
 ```csv
 Name,DefaultWeight,Contact
@@ -46,7 +46,7 @@ Bob,1.0,
 Carol,1.0,
 ```
 
-* **rates.csv** (manual exchange rates to VND)
+- **rates.csv** (manual exchange rates to VND)
 
 ```csv
 Date,Currency,Rate_to_Base
@@ -55,14 +55,14 @@ Date,Currency,Rate_to_Base
 2025-08-11,CNY,3610
 ```
 
-* **expenses.csv**
+- **expenses.csv**
 
 ```csv
 ExpID,Date,Description,Category,Amount,Currency,Payer,DriveURL
 E0001,2025-08-10,SIM cards,SIM cards,150,CNY,Alice,https://drive.google.com/receipt1
 ```
 
-* **splits.csv**
+- **splits.csv**
 
 ```csv
 ExpID,Participant,Included,WeightOverride
@@ -91,20 +91,20 @@ Open in Excel → explore **Settlement, Balances, Expenses, Summary**.
 
 ## 📊 Example Output
 
-* Settlement: Alice pays Carol 1,533,000 ₫, Bob pays Carol 453,000 ₫.
-* Summary: Charts of spending by category & participant.
+- Settlement: Alice pays Carol 1,533,000 ₫, Bob pays Carol 453,000 ₫.
+- Summary: Charts of spending by category & participant.
 
 ## 🔒 Best Practices
 
-* Keep receipts → upload to Google Drive → paste share link in `expenses.csv`.
-* Update `rates.csv` daily with exchange rates.
-* Use `splits.csv` for fairness (e.g., skip or weight participants).
+- Keep receipts → upload to Google Drive → paste share link in `expenses.csv`.
+- Update `rates.csv` daily with exchange rates.
+- Use `splits.csv` for fairness (e.g., skip or weight participants).
 
 ## 🚀 Future Ideas
 
-* One-click **PDF export** of Settlement & Summary.
-* Mobile-friendly input (Google Sheets → CSV sync).
-* Support for multiple trips.
+- One-click **PDF export** of Settlement & Summary.
+- Mobile-friendly input (Google Sheets → CSV sync).
+- Support for multiple trips.
 
 ---
 
