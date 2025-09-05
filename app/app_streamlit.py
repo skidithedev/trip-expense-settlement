@@ -79,16 +79,27 @@ st.sidebar.caption("Excel includes: Settlement, Balances, Allocations, Expenses,
 
 
 # -----------------------------
-# Load or reload data
+# Load or reload data into session_state
 # -----------------------------
 if reload_clicked and not os.path.isdir(data_dir):
     st.sidebar.error(f"Folder not found: {data_dir}")
 
-data = load_all_data(data_dir if os.path.isdir(data_dir) else "sample_data")
-participants = data["participants"].copy()
-rates        = data["rates"].copy()
-expenses     = data["expenses"].copy()
-splits       = data["splits"].copy()
+if "dfs" not in st.session_state or reload_clicked:
+    load_dir = data_dir if os.path.isdir(data_dir) else "sample_data"
+    data = load_all_data(load_dir)
+    st.session_state.dfs = {
+        "participants": data["participants"].copy(),
+        "rates": data["rates"].copy(),
+        "expenses": data["expenses"].copy(),
+        "splits": data["splits"].copy(),
+    }
+    st.session_state.loaded_data_dir = load_dir
+
+# Bind locals to current state for easier use below
+participants = st.session_state.dfs["participants"]
+rates        = st.session_state.dfs["rates"]
+expenses     = st.session_state.dfs["expenses"]
+splits       = st.session_state.dfs["splits"]
 
 # -----------------------------
 # Tabs
@@ -101,6 +112,7 @@ with tab_p:
     st.subheader("Participants")
     participants = apply_sort_controls(participants, key_prefix="participants", default_col=participants.columns[0] if not participants.empty else None)
     participants = editable_table("participants.csv", participants, key="participants")
+    st.session_state.dfs["participants"] = participants
     st.info("Weights default to 1.0; you can adjust here or per-expense via WeightOverride in Splits.")
 
 with tab_r:
@@ -108,6 +120,7 @@ with tab_r:
     st.caption("Enter manual daily FX rates. VND must be 1.")
     rates = apply_sort_controls(rates, key_prefix="rates", default_col=rates.columns[0] if not rates.empty else None)
     rates = editable_table("rates.csv", rates, key="rates")
+    st.session_state.dfs["rates"] = rates
 
 with tab_e:
     st.subheader("Expenses")
@@ -147,6 +160,7 @@ with tab_e:
     else:
         # Keep helper column for further edits until save
         pass
+    st.session_state.dfs["expenses"] = expenses
 
 with tab_s:
     st.subheader("Splits (long format)")
@@ -176,14 +190,15 @@ with tab_s:
     else:
         # Keep helper column for further edits until save
         pass
+    st.session_state.dfs["splits"] = splits
 
 # -----------------------------
 # Pipeline (Preview)
 # -----------------------------
 try:
-    expenses_vnd = convert_expenses_to_base(expenses, rates)
-    allocations  = compute_allocations(expenses_vnd, splits, participants)
-    balances     = compute_balances(expenses_vnd, allocations, participants)
+    expenses_vnd = convert_expenses_to_base(st.session_state.dfs["expenses"], st.session_state.dfs["rates"])
+    allocations  = compute_allocations(expenses_vnd, st.session_state.dfs["splits"], st.session_state.dfs["participants"])
+    balances     = compute_balances(expenses_vnd, allocations, st.session_state.dfs["participants"])
     settlement   = compute_settlement(balances)
 except Exception as e:
     with tab_prev:
@@ -228,10 +243,10 @@ with tab_sum:
 # -----------------------------
 if save_clicked:
     try:
-        save_df_csv(participants, os.path.join(data_dir, "participants.csv"))
-        save_df_csv(rates,        os.path.join(data_dir, "rates.csv"))
-        save_df_csv(expenses,     os.path.join(data_dir, "expenses.csv"))
-        save_df_csv(splits,       os.path.join(data_dir, "splits.csv"))
+        save_df_csv(st.session_state.dfs["participants"], os.path.join(data_dir, "participants.csv"))
+        save_df_csv(st.session_state.dfs["rates"],        os.path.join(data_dir, "rates.csv"))
+        save_df_csv(st.session_state.dfs["expenses"],     os.path.join(data_dir, "expenses.csv"))
+        save_df_csv(st.session_state.dfs["splits"],       os.path.join(data_dir, "splits.csv"))
         st.sidebar.success("CSV files saved.")
     except Exception as e:
         st.sidebar.error(f"Failed to save CSVs: {e}")
