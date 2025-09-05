@@ -46,21 +46,49 @@ def apply_sort_controls(df: pd.DataFrame, key_prefix: str, default_col: str | No
     sort_columns = [c for c in df.columns if not str(c).startswith(exclude_prefix)]
     if not sort_columns:
         return df
-    # Controls
-    c1, c2 = st.columns([2, 1])
-    with c1:
-        try:
-            default_idx = sort_columns.index(default_col) if default_col in sort_columns else 0
-        except ValueError:
-            default_idx = 0
-        sort_col = st.selectbox("Sort by", sort_columns, index=default_idx, key=f"{key_prefix}_sort_col")
-    with c2:
-        asc = st.toggle("Ascending", value=True, key=f"{key_prefix}_sort_asc")
-    # Use stable sort (mergesort) and reset index for cleaner display
-    try:
-        return df.sort_values(by=sort_col, ascending=asc, kind="mergesort", ignore_index=True)
-    except Exception:
+    # Persisted prefs container
+    if "sort_prefs" not in st.session_state:
+        st.session_state.sort_prefs = {}
+    prefs = st.session_state.sort_prefs.get(key_prefix, {})
+
+    with st.expander("Sorting", expanded=False):
+        c1, c2, c3 = st.columns([2, 1, 1])
+        with c1:
+            try:
+                default_idx = sort_columns.index(default_col) if default_col in sort_columns else 0
+            except ValueError:
+                default_idx = 0
+            selected_col = st.selectbox(
+                "Sort by",
+                sort_columns,
+                index=sort_columns.index(prefs.get("col", sort_columns[default_idx])) if prefs.get("col") in sort_columns else default_idx,
+                key=f"{key_prefix}_sort_col_tmp",
+            )
+        with c2:
+            selected_asc = st.toggle(
+                "Ascending",
+                value=prefs.get("asc", True),
+                key=f"{key_prefix}_sort_asc_tmp",
+            )
+        with c3:
+            apply_clicked = st.button("Apply sort", key=f"{key_prefix}_apply_sort")
+            clear_clicked = st.button("Clear sort", key=f"{key_prefix}_clear_sort")
+
+    # Update persisted sort preferences only when buttons clicked
+    if clear_clicked:
+        st.session_state.sort_prefs[key_prefix] = {}
         return df
+    if apply_clicked:
+        st.session_state.sort_prefs[key_prefix] = {"col": selected_col, "asc": selected_asc}
+
+    # Apply persisted sort if present
+    prefs = st.session_state.sort_prefs.get(key_prefix, {})
+    if "col" in prefs:
+        try:
+            return df.sort_values(by=prefs["col"], ascending=prefs.get("asc", True), kind="mergesort", ignore_index=True)
+        except Exception:
+            return df
+    return df
 
 
 # -----------------------------
@@ -76,6 +104,8 @@ save_clicked = col2.button("Save CSVs")
 
 gen_excel = st.sidebar.button("Generate Excel")
 st.sidebar.caption("Excel includes: Settlement, Balances, Allocations, Expenses, Summary.")
+auto_preview = st.sidebar.toggle("Auto-preview", value=True, help="If off, preview updates only when you click 'Run preview'.")
+run_preview_clicked = st.sidebar.button("Run preview")
 
 
 # -----------------------------
@@ -195,11 +225,15 @@ with tab_s:
 # -----------------------------
 # Pipeline (Preview)
 # -----------------------------
+should_run_preview = auto_preview or run_preview_clicked
 try:
-    expenses_vnd = convert_expenses_to_base(st.session_state.dfs["expenses"], st.session_state.dfs["rates"])
-    allocations  = compute_allocations(expenses_vnd, st.session_state.dfs["splits"], st.session_state.dfs["participants"])
-    balances     = compute_balances(expenses_vnd, allocations, st.session_state.dfs["participants"])
-    settlement   = compute_settlement(balances)
+    if should_run_preview:
+        expenses_vnd = convert_expenses_to_base(st.session_state.dfs["expenses"], st.session_state.dfs["rates"])
+        allocations  = compute_allocations(expenses_vnd, st.session_state.dfs["splits"], st.session_state.dfs["participants"])
+        balances     = compute_balances(expenses_vnd, allocations, st.session_state.dfs["participants"])
+        settlement   = compute_settlement(balances)
+    else:
+        expenses_vnd = allocations = balances = settlement = None
 except Exception as e:
     with tab_prev:
         st.error(f"Pipeline error: {e}")
@@ -217,7 +251,10 @@ with tab_prev:
         st.markdown("**Settlement** (fewest transactions)")
         st.dataframe(settlement, use_container_width=True)
     else:
-        st.info("Fix the error above to see previews.")
+        if auto_preview:
+            st.info("Fix the error above to see previews.")
+        else:
+            st.info("Auto-preview is off. Click 'Run preview' in the sidebar to update.")
 
 # -----------------------------
 # Summary tab (lightweight)
