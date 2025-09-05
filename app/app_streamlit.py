@@ -40,6 +40,13 @@ st.markdown(
       header, footer, section[data-testid="stSidebar"] {
         display: none !important;
       }
+      /* Professional print font and bold headers */
+      html, body, div, section, article, p, span, table, th, td, h1, h2, h3, h4, h5, h6 {
+        font-family: Georgia, "Times New Roman", Times, serif !important;
+      }
+      table th {
+        font-weight: 700 !important;
+      }
       /* Reduce margins to fit more rows per page */
       @page { margin: 10mm; }
     }
@@ -452,7 +459,7 @@ except Exception as e:
     settlement = balances = allocations = expenses_vnd = None
 
 with tab_prev:
-    st.subheader("Preview Results")
+    st.subheader("Results" if print_view else "Preview Results")
     if expenses_vnd is not None:
         st.markdown("**Expenses (with Amount_Base in VND)**")
         if print_view:
