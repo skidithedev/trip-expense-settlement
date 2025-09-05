@@ -1,0 +1,4 @@
+ExpID,Date,Description,Category,Amount,Currency,Payer,DriveURL
+E0001,2025-08-10,SIM cards,SIM cards,150,CNY,Alice,https://drive.google.com/receipt1
+E0002,2025-08-10,Lunch,Food&Drinks,450,CNY,Bob,https://drive.google.com/receipt2
+E0003,2025-08-11,Train tickets,Tickets,900,CNY,Carol,https://drive.google.com/receipt3

@@ -1,0 +1,10 @@
+ExpID,Participant,Included,WeightOverride
+E0001,Alice,TRUE,
+E0001,Bob,TRUE,
+E0001,Carol,TRUE,
+E0002,Alice,TRUE,
+E0002,Bob,TRUE,
+E0002,Carol,FALSE,
+E0003,Alice,TRUE,
+E0003,Bob,TRUE,
+E0003,Carol,TRUE,
