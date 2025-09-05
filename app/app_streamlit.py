@@ -21,6 +21,10 @@ st.set_page_config(page_title="Trip Expense Settlement", layout="wide")
 # Helpers
 # -----------------------------
 def save_df_csv(df: pd.DataFrame, path: str):
+    # Drop completely empty rows (all NaN)
+    df = df.dropna(how="all")
+    # Replace NaN with empty string for CSV friendliness
+    df = df.fillna("")
     df.to_csv(path, index=False)
 
 def editable_table(label: str, df: pd.DataFrame, key: str):
@@ -30,6 +34,7 @@ def editable_table(label: str, df: pd.DataFrame, key: str):
         use_container_width=True,
         hide_index=True,
         key=key,
+        num_rows="dynamic",
     )
     return edited
 
@@ -86,12 +91,33 @@ with tab_e:
         f"- Allowed categories: `{', '.join(EXPENSE_CATEGORIES)}`  \n"
         f"- Supported currencies: `{', '.join(SUPPORTED_CURRENCIES)}`"
     )
-    expenses = editable_table("expenses.csv", expenses, key="expenses")
+    expenses = st.data_editor(
+        expenses,
+        use_container_width=True,
+        hide_index=True,
+        key="expenses",
+        num_rows="dynamic",
+        column_config={
+            "Category": st.column_config.SelectboxColumn("Category", options=EXPENSE_CATEGORIES),
+            "Currency": st.column_config.SelectboxColumn("Currency", options=SUPPORTED_CURRENCIES),
+            "Date": st.column_config.DateColumn("Date"),
+        },
+    )
 
 with tab_s:
     st.subheader("Splits (long format)")
     st.caption("Included = TRUE/FALSE. WeightOverride blank → use DefaultWeight from Participants.")
-    splits = editable_table("splits.csv", splits, key="splits")
+    splits = st.data_editor(
+        splits,
+        use_container_width=True,
+        hide_index=True,
+        key="splits",
+        num_rows="dynamic",
+        column_config={
+            "Included": st.column_config.CheckboxColumn(default=False),
+            "WeightOverride": st.column_config.NumberColumn(required=False),
+        },
+    )
 
 # -----------------------------
 # Pipeline (Preview)
