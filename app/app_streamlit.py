@@ -4,6 +4,7 @@ from io import BytesIO
 from typing import Optional
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 from trip_splitter.schemas import TRIP_NAME, EXPENSE_CATEGORIES, SUPPORTED_CURRENCIES
 from trip_splitter.logic import (
@@ -82,6 +83,7 @@ def sanitize_for_print(df: pd.DataFrame, extra_drop: Optional[list] = None) -> p
 def render_print_table(df: pd.DataFrame):
     if df is None:
         return
+    # Build a Styler that hides the index and formats numbers with up to 3 decimals
     try:
         styler = df.style.hide(axis="index")  # pandas >= 1.4
     except Exception:
@@ -89,6 +91,24 @@ def render_print_table(df: pd.DataFrame):
             styler = df.style.hide_index()    # older pandas fallback
         except Exception:
             styler = df
+
+    # Numeric formatting helper: at most 3 decimals, strip trailing zeros
+    def _fmt_3(x):
+        try:
+            if pd.isna(x):
+                return ""
+            s = f"{float(x):.3f}"
+            s = s.rstrip('0').rstrip('.')
+            return s
+        except Exception:
+            return x
+
+    try:
+        num_cols = list(df.select_dtypes(include=[np.number]).columns)
+        if num_cols:
+            styler = styler.format({col: _fmt_3 for col in num_cols})
+    except Exception:
+        pass
     st.table(styler)
 
 def editable_table(label: str, df: pd.DataFrame, key: str):
