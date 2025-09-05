@@ -433,10 +433,8 @@ with tab_prev:
             render_print_table(sanitize_for_print(expenses_vnd))
         else:
             st.dataframe(expenses_vnd, use_container_width=True)
-        st.markdown("**Allocations** (per expense & participant)")
-        if print_view:
-            render_print_table(sanitize_for_print(allocations))
-        else:
+        if not print_view:
+            st.markdown("**Allocations** (per expense & participant)")
             st.dataframe(allocations, use_container_width=True)
         st.markdown("**Balances** (per participant)")
         if print_view:
