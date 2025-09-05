@@ -30,6 +30,12 @@ st.markdown(
         max-height: none !important;
         overflow: visible !important;
       }
+      /* Hide the horizontal tabs header (tab list) */
+      div[role="tablist"],
+      div[data-baseweb="tab-list"],
+      div[data-testid="stTabs"] nav {
+        display: none !important;
+      }
       /* Hide chrome not needed on paper */
       header, footer, section[data-testid="stSidebar"] {
         display: none !important;
