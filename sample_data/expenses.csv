@@ -1,4 +1,9 @@
 ExpID,Date,Description,Category,Amount,Currency,Payer,DriveURL
-E0001,2025-08-10,SIM cards,SIM cards,150,CNY,Alice,https://drive.google.com/receipt1
-E0002,2025-08-10,Lunch,Food&Drinks,450,CNY,Bob,https://drive.google.com/receipt2
-E0003,2025-08-11,Train tickets,Tickets,900,CNY,Carol,https://drive.google.com/receipt3
+E0001,2025-08-28,SIM cards,Services,350000,VND,Duc Huy,https://drive.google.com/receipt1
+E0002,2025-08-29,Drinks,Food&Drinks,38,CNY,Duc Huy,https://drive.google.com/receipt2
+E0003,2025-08-29,Zhang Yimou Show,Tickets,760,CNY,Chi Quynh,https://drive.google.com/receipt3
+E0004,2025-08-29,Drinks,Food&Drinks,18,CNY,Duc Huy
+E0005,2025-08-29,Drinks,Food&Drinks,50,CNY,Duc Huy
+E0006,2025-08-29,7 Eleven,Food&Drinks,164.40,CNY,Duc Huy
+E0007,2025-08-30,Heytea,Food&Drinks,69,CNY,Duc Huy
+E0008,2025-08-30,Crab Noodles&Xiao Long Bao (Old Town God Temple),Food&Drinks,156,CNY,Duc Huy

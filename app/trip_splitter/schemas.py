@@ -22,8 +22,9 @@ BASE_CURRENCY: str = "VND"
 
 SUPPORTED_CURRENCIES: List[str] = ["VND", "CNY", "USD", "EUR"]
 
+# Modify this based on your personal preferences
 EXPENSE_CATEGORIES: List[str] = [
-    "SIM cards",
+    "Services",
     "Food&Drinks",
     "Tickets",
     "Travelling",
