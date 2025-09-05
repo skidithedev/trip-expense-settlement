@@ -102,12 +102,24 @@ def session_to_json_bytes() -> bytes:
         "data_dir": st.session_state.get("loaded_data_dir", "sample_data"),
         "ts": time.time(),
     }
-    return json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    # default=str ensures pandas.Timestamp, numpy types, etc. are serialized
+    return json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")
 
 def load_session_from_json_bytes(file_bytes: bytes):
     import json
     payload = json.loads(file_bytes.decode("utf-8"))
-    st.session_state.dfs = {k: pd.DataFrame(v) for k, v in payload.get("dfs", {}).items()}
+    # Reconstruct DataFrames; parse Date-like columns back to datetime if present
+    dfs = {}
+    for k, rows in payload.get("dfs", {}).items():
+        df = pd.DataFrame(rows)
+        for col in df.columns:
+            if col.lower() in {"date", "timestamp"}:
+                try:
+                    df[col] = pd.to_datetime(df[col], errors="ignore")
+                except Exception:
+                    pass
+        dfs[k] = df
+    st.session_state.dfs = dfs
     st.session_state.sort_prefs = payload.get("sort_prefs", {})
     st.session_state.auto_preview = payload.get("auto_preview", True)
     st.session_state.loaded_data_dir = payload.get("data_dir", "sample_data")
