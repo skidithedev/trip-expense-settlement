@@ -41,6 +41,27 @@ def editable_table(label: str, df: pd.DataFrame, key: str):
     )
     return edited
 
+def apply_sort_controls(df: pd.DataFrame, key_prefix: str, default_col: str | None = None, exclude_prefix: str = "__") -> pd.DataFrame:
+    # Exclude helper columns (like __delete__)
+    sort_columns = [c for c in df.columns if not str(c).startswith(exclude_prefix)]
+    if not sort_columns:
+        return df
+    # Controls
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        try:
+            default_idx = sort_columns.index(default_col) if default_col in sort_columns else 0
+        except ValueError:
+            default_idx = 0
+        sort_col = st.selectbox("Sort by", sort_columns, index=default_idx, key=f"{key_prefix}_sort_col")
+    with c2:
+        asc = st.toggle("Ascending", value=True, key=f"{key_prefix}_sort_asc")
+    # Use stable sort (mergesort) and reset index for cleaner display
+    try:
+        return df.sort_values(by=sort_col, ascending=asc, kind="mergesort", ignore_index=True)
+    except Exception:
+        return df
+
 
 # -----------------------------
 # Sidebar controls
@@ -78,12 +99,14 @@ tab_p, tab_r, tab_e, tab_s, tab_prev, tab_sum = st.tabs(
 
 with tab_p:
     st.subheader("Participants")
+    participants = apply_sort_controls(participants, key_prefix="participants", default_col=participants.columns[0] if not participants.empty else None)
     participants = editable_table("participants.csv", participants, key="participants")
     st.info("Weights default to 1.0; you can adjust here or per-expense via WeightOverride in Splits.")
 
 with tab_r:
     st.subheader("Rates (to VND)")
     st.caption("Enter manual daily FX rates. VND must be 1.")
+    rates = apply_sort_controls(rates, key_prefix="rates", default_col=rates.columns[0] if not rates.empty else None)
     rates = editable_table("rates.csv", rates, key="rates")
 
 with tab_e:
@@ -98,6 +121,7 @@ with tab_e:
     # Add a helper checkbox column for deletions (not saved to CSV)
     if "__delete__" not in expenses.columns:
         expenses["__delete__"] = False
+    expenses = apply_sort_controls(expenses, key_prefix="expenses", default_col="Date" if "Date" in expenses.columns else None)
     col_del_e1, col_del_e2 = st.columns([1, 3])
     with col_del_e1:
         del_expenses_clicked = st.button("Delete selected rows", key="del_expenses")
@@ -131,6 +155,7 @@ with tab_s:
     # Add a helper checkbox column for deletions (not saved to CSV)
     if "__delete__" not in splits.columns:
         splits["__delete__"] = False
+    splits = apply_sort_controls(splits, key_prefix="splits", default_col="ExpenseID" if "ExpenseID" in splits.columns else None)
     col_del_s1, col_del_s2 = st.columns([1, 3])
     with col_del_s1:
         del_splits_clicked = st.button("Delete selected rows", key="del_splits")
